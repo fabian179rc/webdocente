@@ -1,135 +1,152 @@
-"use client"
+"use client";
 
-import { useEffect, useRef, useState } from "react"
-import Image from "next/image"
-import { motion, AnimatePresence } from "motion/react"
-import { Phone, PhoneOff, Mic, Volume2, Grid3x3 } from "lucide-react"
+import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
+import { motion, AnimatePresence } from "motion/react";
+import { Phone, PhoneOff, Mic, Volume2, Grid3x3 } from "lucide-react";
 
-type Phase = "incoming" | "active" | "ending"
+type Phase = "incoming" | "active" | "ending";
 
 export function Exp1Call({ onComplete }: { onComplete: () => void }) {
-  const [phase, setPhase] = useState<Phase>("incoming")
-  const [seconds, setSeconds] = useState(0)
-  const audioRef = useRef<HTMLAudioElement | null>(null)
-  const vibrationContextRef = useRef<AudioContext | null>(null)
-  const vibrationTimeoutRef = useRef<number | null>(null)
-  const vibrationIntervalRef = useRef<number | null>(null)
-  const endCallDelayRef = useRef<number | null>(null)
-  const endCallTimeoutRef = useRef<number | null>(null)
+  const [phase, setPhase] = useState<Phase>("incoming");
+  const [seconds, setSeconds] = useState(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const vibrationContextRef = useRef<AudioContext | null>(null);
+  const vibrationTimeoutRef = useRef<number | null>(null);
+  const vibrationIntervalRef = useRef<number | null>(null);
+  const endCallDelayRef = useRef<number | null>(null);
+  const endCallTimeoutRef = useRef<number | null>(null);
 
   // Tick the call timer while the call is active
   useEffect(() => {
-    if (phase !== "active") return
-    const t = setInterval(() => setSeconds((s) => s + 1), 1000)
-    return () => clearInterval(t)
-  }, [phase])
+    if (phase !== "active") return;
+    const t = setInterval(() => setSeconds((s) => s + 1), 1000);
+    return () => clearInterval(t);
+  }, [phase]);
 
   useEffect(() => {
     if (phase !== "incoming") {
       if (vibrationTimeoutRef.current) {
-        window.clearTimeout(vibrationTimeoutRef.current)
-        vibrationTimeoutRef.current = null
+        window.clearTimeout(vibrationTimeoutRef.current);
+        vibrationTimeoutRef.current = null;
       }
       if (vibrationIntervalRef.current) {
-        window.clearInterval(vibrationIntervalRef.current)
-        vibrationIntervalRef.current = null
+        window.clearInterval(vibrationIntervalRef.current);
+        vibrationIntervalRef.current = null;
       }
-      return
+      return;
     }
 
     const playVibrationTone = () => {
-      const AudioContextCtor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-      if (!AudioContextCtor) return
+      const AudioContextCtor =
+        window.AudioContext ||
+        (window as Window & { webkitAudioContext?: typeof AudioContext })
+          .webkitAudioContext;
+      if (!AudioContextCtor) return;
 
-      const context = vibrationContextRef.current ?? new AudioContextCtor()
-      vibrationContextRef.current = context
+      const context = vibrationContextRef.current ?? new AudioContextCtor();
+      vibrationContextRef.current = context;
 
       if (context.state === "suspended") {
-        void context.resume()
+        void context.resume();
       }
 
-      const oscillator = context.createOscillator()
-      const gain = context.createGain()
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
 
-      oscillator.type = "sine"
-      oscillator.frequency.setValueAtTime(780, context.currentTime)
-      oscillator.frequency.exponentialRampToValueAtTime(620, context.currentTime + 0.12)
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(780, context.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(
+        620,
+        context.currentTime + 0.12,
+      );
 
-      gain.gain.setValueAtTime(0.0001, context.currentTime)
-      gain.gain.exponentialRampToValueAtTime(0.008, context.currentTime + 0.02)
-      gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.12)
+      gain.gain.setValueAtTime(0.0001, context.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.008, context.currentTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(
+        0.0001,
+        context.currentTime + 0.12,
+      );
 
-      oscillator.connect(gain)
-      gain.connect(context.destination)
-      oscillator.start()
-      oscillator.stop(context.currentTime + 0.12)
-    }
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+      oscillator.start();
+      oscillator.stop(context.currentTime + 0.12);
+    };
 
-    playVibrationTone()
-    vibrationTimeoutRef.current = window.setTimeout(playVibrationTone, 1400)
-    vibrationIntervalRef.current = window.setInterval(playVibrationTone, 1800)
+    playVibrationTone();
+    vibrationTimeoutRef.current = window.setTimeout(playVibrationTone, 1400);
+    vibrationIntervalRef.current = window.setInterval(playVibrationTone, 1800);
 
     return () => {
       if (vibrationTimeoutRef.current) {
-        window.clearTimeout(vibrationTimeoutRef.current)
-        vibrationTimeoutRef.current = null
+        window.clearTimeout(vibrationTimeoutRef.current);
+        vibrationTimeoutRef.current = null;
       }
       if (vibrationIntervalRef.current) {
-        window.clearInterval(vibrationIntervalRef.current)
-        vibrationIntervalRef.current = null
+        window.clearInterval(vibrationIntervalRef.current);
+        vibrationIntervalRef.current = null;
       }
-    }
-  }, [phase])
+    };
+  }, [phase]);
 
   useEffect(() => {
     return () => {
       if (endCallDelayRef.current) {
-        window.clearTimeout(endCallDelayRef.current)
+        window.clearTimeout(endCallDelayRef.current);
       }
       if (endCallTimeoutRef.current) {
-        window.clearTimeout(endCallTimeoutRef.current)
+        window.clearTimeout(endCallTimeoutRef.current);
       }
-      if (vibrationContextRef.current && vibrationContextRef.current.state !== "closed") {
-        void vibrationContextRef.current.close()
+      if (
+        vibrationContextRef.current &&
+        vibrationContextRef.current.state !== "closed"
+      ) {
+        void vibrationContextRef.current.close();
       }
-    }
-  }, [])
+    };
+  }, []);
 
   const handleAnswer = () => {
-    setPhase("active")
+    setPhase("active");
     // Start the call audio; the call lasts as long as the audio
-    const audio = audioRef.current
+    const audio = audioRef.current;
     if (audio) {
-      audio.currentTime = 0
-      void audio.play().catch(() => {})
+      audio.currentTime = 0;
+      void audio.play().catch(() => {});
     }
-  }
+  };
 
   const handleAudioEnded = () => {
     if (endCallDelayRef.current) {
-      window.clearTimeout(endCallDelayRef.current)
+      window.clearTimeout(endCallDelayRef.current);
     }
     if (endCallTimeoutRef.current) {
-      window.clearTimeout(endCallTimeoutRef.current)
+      window.clearTimeout(endCallTimeoutRef.current);
     }
 
     endCallDelayRef.current = window.setTimeout(() => {
-      setPhase("ending")
-    }, 1000)
+      setPhase("ending");
+    }, 1000);
 
     endCallTimeoutRef.current = window.setTimeout(() => {
-      onComplete()
-    }, 2500)
-  }
+      onComplete();
+    }, 2500);
+  };
 
   const mins = Math.floor(seconds / 60)
     .toString()
-    .padStart(2, "0")
-  const secs = (seconds % 60).toString().padStart(2, "0")
+    .padStart(2, "0");
+  const secs = (seconds % 60).toString().padStart(2, "0");
 
   return (
     <div className="relative flex h-dvh w-full flex-col items-center justify-between overflow-hidden bg-gradient-to-b from-[#10151c] via-[#0c1118] to-[#070a0e] px-6 py-12 text-white">
-      <audio ref={audioRef} src="/audio-llamada.mp3" onEnded={handleAudioEnded} preload="auto" />
+      <audio
+        ref={audioRef}
+        src="/audio-llamada.mp3"
+        onEnded={handleAudioEnded}
+        preload="auto"
+      />
       <AnimatePresence>
         {phase === "ending" && (
           <motion.div
@@ -146,15 +163,23 @@ export function Exp1Call({ onComplete }: { onComplete: () => void }) {
         {phase === "incoming" ? (
           <motion.p
             animate={{ opacity: [1, 0.45, 1] }}
-            transition={{ duration: 1.6, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+            transition={{
+              duration: 1.6,
+              repeat: Number.POSITIVE_INFINITY,
+              ease: "easeInOut",
+            }}
             className="text-sm font-medium tracking-wide text-emerald-400"
           >
             Llamada entrante
           </motion.p>
         ) : phase === "ending" ? (
-          <p className="text-sm font-medium tracking-wide text-rose-400">Llamada finalizada</p>
+          <p className="text-sm font-medium tracking-wide text-rose-400">
+            Llamada finalizada
+          </p>
         ) : (
-          <p className="text-sm font-medium tracking-wide text-white/50">Conectado</p>
+          <p className="text-sm font-medium tracking-wide text-white/50">
+            Conectado
+          </p>
         )}
         {phase === "active" && (
           <p className="font-mono text-sm text-emerald-400/90 tabular-nums">
@@ -183,7 +208,9 @@ export function Exp1Call({ onComplete }: { onComplete: () => void }) {
             ))}
           <div
             className={`relative size-40 overflow-hidden rounded-full shadow-2xl ${
-              phase === "ending" ? "ring-4 ring-rose-400/50" : "ring-4 ring-emerald-400/40"
+              phase === "ending"
+                ? "ring-4 ring-rose-400/50"
+                : "ring-4 ring-emerald-400/40"
             }`}
           >
             <Image
@@ -227,7 +254,10 @@ export function Exp1Call({ onComplete }: { onComplete: () => void }) {
               >
                 <motion.span
                   animate={{ scale: [1, 1.08, 1] }}
-                  transition={{ duration: 1.2, repeat: Number.POSITIVE_INFINITY }}
+                  transition={{
+                    duration: 1.2,
+                    repeat: Number.POSITIVE_INFINITY,
+                  }}
                   className="flex size-16 items-center justify-center rounded-full bg-emerald-500 shadow-lg active:scale-95"
                 >
                   <Phone className="size-7" aria-hidden />
@@ -243,9 +273,18 @@ export function Exp1Call({ onComplete }: { onComplete: () => void }) {
               className="flex flex-col items-center gap-8"
             >
               <div className="grid w-full grid-cols-3 gap-y-6">
-                <CallControl icon={<Mic className="size-6" />} label="Silenciar" />
-                <CallControl icon={<Volume2 className="size-6" />} label="Altavoz" />
-                <CallControl icon={<Grid3x3 className="size-6" />} label="Teclado" />
+                <CallControl
+                  icon={<Mic className="size-6" />}
+                  label="Silenciar"
+                />
+                <CallControl
+                  icon={<Volume2 className="size-6" />}
+                  label="Altavoz"
+                />
+                <CallControl
+                  icon={<Grid3x3 className="size-6" />}
+                  label="Teclado"
+                />
               </div>
               <div className="flex flex-col items-center gap-2" aria-hidden>
                 <span className="flex size-16 items-center justify-center rounded-full bg-red-500/60 shadow-lg">
@@ -257,10 +296,16 @@ export function Exp1Call({ onComplete }: { onComplete: () => void }) {
         </AnimatePresence>
       </div>
     </div>
-  )
+  );
 }
 
-function CallControl({ icon, label }: { icon: React.ReactNode; label: string }) {
+function CallControl({
+  icon,
+  label,
+}: {
+  icon: React.ReactNode;
+  label: string;
+}) {
   return (
     <div className="flex flex-col items-center gap-2" aria-hidden>
       <span className="flex size-14 items-center justify-center rounded-full bg-white/10 text-white/40 backdrop-blur">
@@ -268,5 +313,5 @@ function CallControl({ icon, label }: { icon: React.ReactNode; label: string }) 
       </span>
       <span className="text-xs text-white/40">{label}</span>
     </div>
-  )
+  );
 }

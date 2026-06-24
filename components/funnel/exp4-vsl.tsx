@@ -1,28 +1,31 @@
-"use client"
+"use client";
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef } from "react";
 
 type YouTubeWindow = Window & {
   YT?: {
-    Player: new (element: HTMLElement, options: Record<string, unknown>) => unknown
+    Player: new (
+      element: HTMLElement,
+      options: Record<string, unknown>,
+    ) => unknown;
     PlayerState?: {
-      ENDED?: number
-    }
-  }
-  onYouTubeIframeAPIReady?: () => void
-}
+      ENDED?: number;
+    };
+  };
+  onYouTubeIframeAPIReady?: () => void;
+};
 
 export function Exp4Vsl({ onComplete }: { onComplete: () => void }) {
-  const containerRef = useRef<HTMLDivElement | null>(null)
-  const playerRef = useRef<unknown>(null)
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const playerRef = useRef<unknown>(null);
 
   useEffect(() => {
-    const win = window as YouTubeWindow
+    const win = window as YouTubeWindow;
 
-    if (!containerRef.current || typeof win === "undefined") return
+    if (!containerRef.current || typeof win === "undefined") return;
 
     const loadPlayer = () => {
-      if (!win.YT || !containerRef.current) return
+      if (!win.YT || !containerRef.current) return;
 
       playerRef.current = new win.YT.Player(containerRef.current, {
         videoId: "4g-U9ixPzk0",
@@ -42,46 +45,64 @@ export function Exp4Vsl({ onComplete }: { onComplete: () => void }) {
           disablekb: 1,
         },
         events: {
-          onReady: (event: { target: { playVideo: () => void } }) => event.target.playVideo(),
+          onReady: (event: { target: { playVideo: () => void } }) =>
+            event.target.playVideo(),
           onStateChange: (event: { data: number }) => {
             if (event.data === win.YT?.PlayerState?.ENDED) {
-              onComplete()
+              onComplete();
             }
           },
         },
-      })
-    }
+      });
+    };
 
     if (win.YT?.Player) {
-      loadPlayer()
-      return
+      loadPlayer();
+      return;
     }
 
-    const existingScript = document.querySelector('script[src="https://www.youtube.com/iframe_api"]')
+    const existingScript = document.querySelector(
+      'script[src="https://www.youtube.com/iframe_api"]',
+    );
     if (!existingScript) {
-      const script = document.createElement("script")
-      script.src = "https://www.youtube.com/iframe_api"
-      script.async = true
-      document.body.appendChild(script)
+      const script = document.createElement("script");
+      script.src = "https://www.youtube.com/iframe_api";
+      script.async = true;
+      document.body.appendChild(script);
     }
 
-    win.onYouTubeIframeAPIReady = loadPlayer
+    win.onYouTubeIframeAPIReady = loadPlayer;
 
     return () => {
       if (playerRef.current) {
-        const player = playerRef.current as { destroy?: () => void }
-        player.destroy?.()
-        playerRef.current = null
+        const player = playerRef.current as { destroy?: () => void };
+        player.destroy?.();
+        playerRef.current = null;
       }
-    }
-  }, [onComplete])
+    };
+  }, [onComplete]);
 
   return (
     <div className="flex min-h-dvh w-full items-center justify-center bg-[#04070c] px-3 py-4 sm:px-5 sm:py-6">
-      <div style={{ position: "relative", width: "432px", height: "769px", overflow: "hidden", backgroundColor: "#000" }}>
+      <div
+        style={{
+          position: "relative",
+          width: "432px",
+          height: "769px",
+          overflow: "hidden",
+          backgroundColor: "#000",
+        }}
+      >
         <div
           ref={containerRef}
-          style={{ position: "absolute", top: "-60px", left: 0, width: "432px", height: "900px", pointerEvents: "none" }}
+          style={{
+            position: "absolute",
+            top: "-60px",
+            left: 0,
+            width: "432px",
+            height: "900px",
+            pointerEvents: "none",
+          }}
         />
 
         <div
@@ -97,5 +118,5 @@ export function Exp4Vsl({ onComplete }: { onComplete: () => void }) {
         />
       </div>
     </div>
-  )
+  );
 }
