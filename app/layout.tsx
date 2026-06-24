@@ -1,0 +1,62 @@
+import { Analytics } from '@vercel/analytics/next'
+import type { Metadata, Viewport } from 'next'
+import { Geist, Geist_Mono, Poppins } from 'next/font/google'
+import './globals.css'
+
+const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
+const geistMono = Geist_Mono({
+  variable: '--font-geist-mono',
+  subsets: ['latin'],
+})
+const poppins = Poppins({
+  variable: '--font-poppins',
+  subsets: ['latin'],
+  weight: ['500', '600', '700', '800'],
+})
+
+export const metadata: Metadata = {
+  title: 'Agenda del Nivel Inicial — Recuperá tu tiempo',
+  description:
+    'La agenda que ayuda a docentes de nivel inicial a organizar clases, actividades y recursos en un solo lugar.',
+  generator: 'v0.app',
+  icons: {
+    icon: [
+      {
+        url: '/icon-light-32x32.png',
+        media: '(prefers-color-scheme: light)',
+      },
+      {
+        url: '/icon-dark-32x32.png',
+        media: '(prefers-color-scheme: dark)',
+      },
+      {
+        url: '/icon.svg',
+        type: 'image/svg+xml',
+      },
+    ],
+    apple: '/apple-icon.png',
+  },
+}
+
+export const viewport: Viewport = {
+  colorScheme: 'light',
+  themeColor: '#0f1115',
+}
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode
+}>) {
+  return (
+    <html
+      lang="es"
+      className={`light ${geistSans.variable} ${geistMono.variable} ${poppins.variable}`}
+    >
+      <body className="font-sans antialiased bg-background">
+        {children}
+        {process.env.NODE_ENV === 'production' && <Analytics />}
+      </body>
+    </html>
+  )
+}
