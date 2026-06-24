@@ -1,9 +1,13 @@
 "use client"
 
-import { useRouter } from "next/navigation"
 import { Exp8Objections } from "@/components/funnel/exp8-objections"
 
 export default function Page() {
-  const router = useRouter()
-  return <Exp8Objections onComplete={() => router.push("/oferta")} />
+  return (
+    <Exp8Objections
+      onComplete={() => {
+        window.location.href = "https://nivel-inicial.tera-ventasonline.shop/"
+      }}
+    />
+  )
 }

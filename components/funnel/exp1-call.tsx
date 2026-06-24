@@ -11,8 +11,7 @@ export function Exp1Call({ onComplete }: { onComplete: () => void }) {
   const [phase, setPhase] = useState<Phase>("incoming");
   const [seconds, setSeconds] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const vibrationContextRef = useRef<AudioContext | null>(null);
-  const vibrationTimeoutRef = useRef<number | null>(null);
+  const vibrationAudioRef = useRef<HTMLAudioElement | null>(null);
   const vibrationIntervalRef = useRef<number | null>(null);
   const endCallDelayRef = useRef<number | null>(null);
   const endCallTimeoutRef = useRef<number | null>(null);
@@ -25,13 +24,15 @@ export function Exp1Call({ onComplete }: { onComplete: () => void }) {
   }, [phase]);
 
   const stopVibration = () => {
-    if (vibrationTimeoutRef.current) {
-      window.clearTimeout(vibrationTimeoutRef.current);
-      vibrationTimeoutRef.current = null;
-    }
     if (vibrationIntervalRef.current) {
       window.clearInterval(vibrationIntervalRef.current);
       vibrationIntervalRef.current = null;
+    }
+    // Stop the vibration sound
+    const vib = vibrationAudioRef.current;
+    if (vib) {
+      vib.pause();
+      vib.currentTime = 0;
     }
     // Stop the device's hardware vibration motor if it is running
     if (typeof navigator !== "undefined" && "vibrate" in navigator) {
@@ -45,58 +46,22 @@ export function Exp1Call({ onComplete }: { onComplete: () => void }) {
       return;
     }
 
-    // Buzz sound that imitates a phone vibrating against a surface:
-    // a short burst of low-frequency rattle.
-    const playVibrationBuzz = () => {
-      const AudioContextCtor =
-        window.AudioContext ||
-        (window as Window & { webkitAudioContext?: typeof AudioContext })
-          .webkitAudioContext;
-      if (!AudioContextCtor) return;
-
-      const context = vibrationContextRef.current ?? new AudioContextCtor();
-      vibrationContextRef.current = context;
-
-      if (context.state === "suspended") {
-        void context.resume();
-      }
-
-      const now = context.currentTime;
-      // Two quick buzzes per ring, mimicking a typical phone vibration pattern
-      [0, 0.32].forEach((offset) => {
-        const start = now + offset;
-        const duration = 0.22;
-
-        const oscillator = context.createOscillator();
-        const gain = context.createGain();
-
-        // Low, rattly frequency for a "brrr" vibration feel
-        oscillator.type = "square";
-        oscillator.frequency.setValueAtTime(60, start);
-        oscillator.frequency.linearRampToValueAtTime(48, start + duration);
-
-        gain.gain.setValueAtTime(0.0001, start);
-        gain.gain.exponentialRampToValueAtTime(0.12, start + 0.015);
-        gain.gain.setValueAtTime(0.12, start + duration - 0.04);
-        gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
-
-        oscillator.connect(gain);
-        gain.connect(context.destination);
-        oscillator.start(start);
-        oscillator.stop(start + duration);
-      });
-    };
-
     const triggerVibration = () => {
       // Hardware vibration (mobile): two pulses with a gap
       if (typeof navigator !== "undefined" && "vibrate" in navigator) {
         navigator.vibrate([220, 120, 220]);
       }
-      playVibrationBuzz();
     };
 
+    // Play the vibration sound on loop until the call is answered
+    const vib = vibrationAudioRef.current;
+    if (vib) {
+      vib.currentTime = 0;
+      void vib.play().catch(() => {});
+    }
+
     triggerVibration();
-    // Repeat the whole vibration pattern until the call is answered
+    // Repeat the hardware vibration pattern until the call is answered
     vibrationIntervalRef.current = window.setInterval(triggerVibration, 1600);
 
     return () => {
@@ -112,12 +77,6 @@ export function Exp1Call({ onComplete }: { onComplete: () => void }) {
       }
       if (endCallTimeoutRef.current) {
         window.clearTimeout(endCallTimeoutRef.current);
-      }
-      if (
-        vibrationContextRef.current &&
-        vibrationContextRef.current.state !== "closed"
-      ) {
-        void vibrationContextRef.current.close();
       }
     };
   }, []);
@@ -160,6 +119,12 @@ export function Exp1Call({ onComplete }: { onComplete: () => void }) {
         ref={audioRef}
         src="/audio-llamada.mp3"
         onEnded={handleAudioEnded}
+        preload="auto"
+      />
+      <audio
+        ref={vibrationAudioRef}
+        src="/vibracion.mp3"
+        loop
         preload="auto"
       />
       <AnimatePresence>
