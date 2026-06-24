@@ -24,20 +24,30 @@ export function Exp1Call({ onComplete }: { onComplete: () => void }) {
     return () => clearInterval(t);
   }, [phase]);
 
+  const stopVibration = () => {
+    if (vibrationTimeoutRef.current) {
+      window.clearTimeout(vibrationTimeoutRef.current);
+      vibrationTimeoutRef.current = null;
+    }
+    if (vibrationIntervalRef.current) {
+      window.clearInterval(vibrationIntervalRef.current);
+      vibrationIntervalRef.current = null;
+    }
+    // Stop the device's hardware vibration motor if it is running
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+      navigator.vibrate(0);
+    }
+  };
+
   useEffect(() => {
     if (phase !== "incoming") {
-      if (vibrationTimeoutRef.current) {
-        window.clearTimeout(vibrationTimeoutRef.current);
-        vibrationTimeoutRef.current = null;
-      }
-      if (vibrationIntervalRef.current) {
-        window.clearInterval(vibrationIntervalRef.current);
-        vibrationIntervalRef.current = null;
-      }
+      stopVibration();
       return;
     }
 
-    const playVibrationTone = () => {
+    // Buzz sound that imitates a phone vibrating against a surface:
+    // a short burst of low-frequency rattle.
+    const playVibrationBuzz = () => {
       const AudioContextCtor =
         window.AudioContext ||
         (window as Window & { webkitAudioContext?: typeof AudioContext })
@@ -51,43 +61,48 @@ export function Exp1Call({ onComplete }: { onComplete: () => void }) {
         void context.resume();
       }
 
-      const oscillator = context.createOscillator();
-      const gain = context.createGain();
+      const now = context.currentTime;
+      // Two quick buzzes per ring, mimicking a typical phone vibration pattern
+      [0, 0.32].forEach((offset) => {
+        const start = now + offset;
+        const duration = 0.22;
 
-      oscillator.type = "sine";
-      oscillator.frequency.setValueAtTime(780, context.currentTime);
-      oscillator.frequency.exponentialRampToValueAtTime(
-        620,
-        context.currentTime + 0.12,
-      );
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
 
-      gain.gain.setValueAtTime(0.0001, context.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.008, context.currentTime + 0.02);
-      gain.gain.exponentialRampToValueAtTime(
-        0.0001,
-        context.currentTime + 0.12,
-      );
+        // Low, rattly frequency for a "brrr" vibration feel
+        oscillator.type = "square";
+        oscillator.frequency.setValueAtTime(60, start);
+        oscillator.frequency.linearRampToValueAtTime(48, start + duration);
 
-      oscillator.connect(gain);
-      gain.connect(context.destination);
-      oscillator.start();
-      oscillator.stop(context.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(0.12, start + 0.015);
+        gain.gain.setValueAtTime(0.12, start + duration - 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.start(start);
+        oscillator.stop(start + duration);
+      });
     };
 
-    playVibrationTone();
-    vibrationTimeoutRef.current = window.setTimeout(playVibrationTone, 1400);
-    vibrationIntervalRef.current = window.setInterval(playVibrationTone, 1800);
+    const triggerVibration = () => {
+      // Hardware vibration (mobile): two pulses with a gap
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+        navigator.vibrate([220, 120, 220]);
+      }
+      playVibrationBuzz();
+    };
+
+    triggerVibration();
+    // Repeat the whole vibration pattern until the call is answered
+    vibrationIntervalRef.current = window.setInterval(triggerVibration, 1600);
 
     return () => {
-      if (vibrationTimeoutRef.current) {
-        window.clearTimeout(vibrationTimeoutRef.current);
-        vibrationTimeoutRef.current = null;
-      }
-      if (vibrationIntervalRef.current) {
-        window.clearInterval(vibrationIntervalRef.current);
-        vibrationIntervalRef.current = null;
-      }
+      stopVibration();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
   useEffect(() => {
