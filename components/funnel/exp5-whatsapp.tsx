@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { WhatsAppChat } from "./whatsapp-chat"
+import { WhatsAppChat } from "./whatsapp-chat";
 
 const SCRIPT = [
   "Hola 😊",
@@ -17,7 +17,7 @@ const SCRIPT = [
   "¿Te pasó alguna vez?",
   "(...)",
   "Te leo 👇",
-]
+];
 
 export function Exp5WhatsApp({ onComplete }: { onComplete: () => void }) {
   return (
@@ -26,8 +26,8 @@ export function Exp5WhatsApp({ onComplete }: { onComplete: () => void }) {
       status="Coordinadora Académica"
       avatar="/avatar-maria.png"
       script={SCRIPT}
-      ctaLabel="Acceder a la biblioteca privada"
+      ctaLabel="Sí, quiero organizarme mejor"
       onComplete={onComplete}
     />
-  )
+  );
 }
