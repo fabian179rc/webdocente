@@ -11,8 +11,7 @@ export function Exp1Call({ onComplete }: { onComplete: () => void }) {
   const [phase, setPhase] = useState<Phase>("incoming");
   const [seconds, setSeconds] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const vibrationContextRef = useRef<AudioContext | null>(null);
-  const vibrationTimeoutRef = useRef<number | null>(null);
+  const vibrationAudioRef = useRef<HTMLAudioElement | null>(null);
   const vibrationIntervalRef = useRef<number | null>(null);
   const endCallDelayRef = useRef<number | null>(null);
   const endCallTimeoutRef = useRef<number | null>(null);
@@ -24,70 +23,51 @@ export function Exp1Call({ onComplete }: { onComplete: () => void }) {
     return () => clearInterval(t);
   }, [phase]);
 
+  const stopVibration = () => {
+    if (vibrationIntervalRef.current) {
+      window.clearInterval(vibrationIntervalRef.current);
+      vibrationIntervalRef.current = null;
+    }
+    // Stop the vibration sound
+    const vib = vibrationAudioRef.current;
+    if (vib) {
+      vib.pause();
+      vib.currentTime = 0;
+    }
+    // Stop the device's hardware vibration motor if it is running
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+      navigator.vibrate(0);
+    }
+  };
+
   useEffect(() => {
     if (phase !== "incoming") {
-      if (vibrationTimeoutRef.current) {
-        window.clearTimeout(vibrationTimeoutRef.current);
-        vibrationTimeoutRef.current = null;
-      }
-      if (vibrationIntervalRef.current) {
-        window.clearInterval(vibrationIntervalRef.current);
-        vibrationIntervalRef.current = null;
-      }
+      stopVibration();
       return;
     }
 
-    const playVibrationTone = () => {
-      const AudioContextCtor =
-        window.AudioContext ||
-        (window as Window & { webkitAudioContext?: typeof AudioContext })
-          .webkitAudioContext;
-      if (!AudioContextCtor) return;
-
-      const context = vibrationContextRef.current ?? new AudioContextCtor();
-      vibrationContextRef.current = context;
-
-      if (context.state === "suspended") {
-        void context.resume();
+    const triggerVibration = () => {
+      // Hardware vibration (mobile): two pulses with a gap
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+        navigator.vibrate([220, 120, 220]);
       }
-
-      const oscillator = context.createOscillator();
-      const gain = context.createGain();
-
-      oscillator.type = "sine";
-      oscillator.frequency.setValueAtTime(780, context.currentTime);
-      oscillator.frequency.exponentialRampToValueAtTime(
-        620,
-        context.currentTime + 0.12,
-      );
-
-      gain.gain.setValueAtTime(0.0001, context.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.008, context.currentTime + 0.02);
-      gain.gain.exponentialRampToValueAtTime(
-        0.0001,
-        context.currentTime + 0.12,
-      );
-
-      oscillator.connect(gain);
-      gain.connect(context.destination);
-      oscillator.start();
-      oscillator.stop(context.currentTime + 0.12);
     };
 
-    playVibrationTone();
-    vibrationTimeoutRef.current = window.setTimeout(playVibrationTone, 1400);
-    vibrationIntervalRef.current = window.setInterval(playVibrationTone, 1800);
+    // Play the vibration sound on loop until the call is answered
+    const vib = vibrationAudioRef.current;
+    if (vib) {
+      vib.currentTime = 0;
+      void vib.play().catch(() => {});
+    }
+
+    triggerVibration();
+    // Repeat the hardware vibration pattern until the call is answered
+    vibrationIntervalRef.current = window.setInterval(triggerVibration, 1600);
 
     return () => {
-      if (vibrationTimeoutRef.current) {
-        window.clearTimeout(vibrationTimeoutRef.current);
-        vibrationTimeoutRef.current = null;
-      }
-      if (vibrationIntervalRef.current) {
-        window.clearInterval(vibrationIntervalRef.current);
-        vibrationIntervalRef.current = null;
-      }
+      stopVibration();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
   useEffect(() => {
@@ -97,12 +77,6 @@ export function Exp1Call({ onComplete }: { onComplete: () => void }) {
       }
       if (endCallTimeoutRef.current) {
         window.clearTimeout(endCallTimeoutRef.current);
-      }
-      if (
-        vibrationContextRef.current &&
-        vibrationContextRef.current.state !== "closed"
-      ) {
-        void vibrationContextRef.current.close();
       }
     };
   }, []);
@@ -145,6 +119,12 @@ export function Exp1Call({ onComplete }: { onComplete: () => void }) {
         ref={audioRef}
         src="/audio-llamada.mp3"
         onEnded={handleAudioEnded}
+        preload="auto"
+      />
+      <audio
+        ref={vibrationAudioRef}
+        src="/vibracion.mp3"
+        loop
         preload="auto"
       />
       <AnimatePresence>
